@@ -1,0 +1,24 @@
+{
+  "name": "what-people-google-music",
+  "version": "1.0.0",
+  "description": "Discover what people Google about artists, songs, genres, and albums",
+  "main": "index.js",
+  "scripts": {
+    "build": "browserify index.js > dist/bundle.js",
+    "watch": "watchify --debug index.js -o dist/bundle.js -v",
+    "server": "http-server -c-1 -p 8080",
+    "dev": "concurrently --kill-others \"npm run watch\" \"npm run server\""
+  },
+  "author": "Fork of anvaka/what-people-google",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anvaka/what-people-google"
+  },
+  "devDependencies": {
+    "browserify": "^17.0.0",
+    "concurrently": "^8.0.0",
+    "http-server": "^14.0.0",
+    "watchify": "^4.0.0"
+  }
+}

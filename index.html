@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>What People Google About Music 🎵</title>
+  <meta name="description" content="Discover what people search about your favorite artists, songs, and genres">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    header {
+      text-align: center;
+      padding: 40px 20px;
+      color: white;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      opacity: 0.9;
+      font-size: 1.1rem;
+    }
+    
+    .search-box {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      margin-bottom: 24px;
+    }
+    
+    .search-input-wrapper {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    
+    #search-input {
+      flex: 1;
+      padding: 14px 18px;
+      font-size: 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    
+    #search-input:focus {
+      border-color: #667eea;
+    }
+    
+    #search-btn {
+      padding: 14px 28px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    #search-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    #search-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .category-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .category-tab {
+      padding: 8px 16px;
+      background: #f0f0f0;
+      border: none;
+      border-radius: 20px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .category-tab.active {
+      background: #667eea;
+      color: white;
+    }
+    
+    .category-tab:hover:not(.active) {
+      background: #e0e0e0;
+    }
+    
+    .results {
+      display: grid;
+      gap: 16px;
+    }
+    
+    .result-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    
+    .result-card h3 {
+      font-size: 14px;
+      color: #667eea;
+      margin-bottom: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .suggestion-list {
+      list-style: none;
+    }
+    
+    .suggestion-item {
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+      color: #555;
+      font-size: 15px;
+    }
+    
+    .suggestion-item:last-child {
+      border-bottom: none;
+    }
+    
+    .suggestion-item b {
+      color: #333;
+      font-weight: 500;
+    }
+    
+    .suggestion-item a {
+      color: inherit;
+      text-decoration: none;
+    }
+    
+    .suggestion-item a:hover {
+      color: #667eea;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: white;
+    }
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: white;
+    }
+    
+    .empty-state .emoji {
+      font-size: 4rem;
+      margin-bottom: 16px;
+    }
+    
+    .examples {
+      margin-top: 24px;
+    }
+    
+    .examples h4 {
+      font-size: 14px;
+      margin-bottom: 12px;
+      opacity: 0.8;
+    }
+    
+    .example-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    .example-chip {
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .example-chip:hover {
+      background: rgba(255,255,255,0.3);
+    }
+    
+    .error {
+      background: #fee;
+      color: #c00;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      color: rgba(255,255,255,0.7);
+      font-size: 14px;
+    }
+    
+    footer a {
+      color: white;
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 1.8rem; }
+      .search-input-wrapper { flex-direction: column; }
+      #search-btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎵 What People Google About Music</h1>
+      <p class="subtitle">Discover what the world is curious about</p>
+    </header>
+    
+    <div class="search-box">
+      <div class="search-input-wrapper">
+        <input type="text" id="search-input" placeholder="Search an artist, song, genre, or album..." autocomplete="off">
+        <button id="search-btn">Search</button>
+      </div>
+      <div class="category-tabs">
+        <button class="category-tab active" data-category="artist">🎤 Artist</button>
+        <button class="category-tab" data-category="song">🎵 Song</button>
+        <button class="category-tab" data-category="genre">🎸 Genre</button>
+        <button class="category-tab" data-category="album">💿 Album</button>
+      </div>
+    </div>
+    
+    <div id="results-container">
+      <div class="empty-state">
+        <div class="emoji">🔍</div>
+        <p>Search for any artist, song, genre, or album to see what people are googling about it!</p>
+        <div class="examples">
+          <h4>Try these examples:</h4>
+          <div class="example-chips">
+            <span class="example-chip" data-query="Taylor Swift" data-category="artist">Taylor Swift</span>
+            <span class="example-chip" data-query="Bohemian Rhapsody" data-category="song">Bohemian Rhapsody</span>
+            <span class="example-chip" data-query="Hip Hop" data-category="genre">Hip Hop</span>
+            <span class="example-chip" data-query="Thriller" data-category="album">Thriller</span>
+            <span class="example-chip" data-query="The Beatles" data-category="artist">The Beatles</span>
+            <span class="example-chip" data-query="Jazz" data-category="genre">Jazz</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <footer>
+      <p>Inspired by <a href="https://github.com/anvaka/what-people-google" target="_blank">what-people-google</a> by anvaka</p>
+    </footer>
+  </div>
+  
+  <script src="dist/bundle.js"></script>
+</body>
+</html>
