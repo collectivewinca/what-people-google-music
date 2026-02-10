@@ -46,7 +46,10 @@
       background: white;
       border-radius: 16px;
       padding: 24px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      box-shadow: 
+        0 1px 2px rgba(0,0,0,0.07),
+        0 4px 8px rgba(0,0,0,0.07),
+        0 16px 32px rgba(0,0,0,0.12);
       margin-bottom: 24px;
     }
     
@@ -139,7 +142,9 @@
       background: white;
       border-radius: 12px;
       padding: 20px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      box-shadow: 
+        0 1px 2px rgba(0,0,0,0.04),
+        0 4px 12px rgba(0,0,0,0.08);
     }
     
     .result-card h3 {
@@ -306,7 +311,7 @@
       <div class="search-box">
         <div class="search-input-wrapper">
           <label for="search-input" class="visually-hidden" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;">Search query</label>
-          <input type="text" id="search-input" placeholder="Search an artist, song, genre, or album…" autocomplete="off">
+          <input type="text" id="search-input" name="search" placeholder="Search an artist, song, genre, or album…" autocomplete="off">
           <button id="search-btn" type="button">Search</button>
         </div>
         <div class="category-tabs" role="tablist" aria-label="Category">
