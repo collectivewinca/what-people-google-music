@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#667eea">
   <title>What People Google About Music 🎵</title>
   <meta name="description" content="Discover what people search about your favorite artists, songs, and genres">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -31,6 +34,7 @@
       font-size: 2.5rem;
       font-weight: 600;
       margin-bottom: 10px;
+      text-wrap: balance;
     }
     
     .subtitle {
@@ -54,16 +58,18 @@
     
     #search-input {
       flex: 1;
+      min-width: 0;
       padding: 14px 18px;
       font-size: 16px;
       border: 2px solid #e0e0e0;
       border-radius: 10px;
-      outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
     
-    #search-input:focus {
+    #search-input:focus-visible {
       border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+      outline: none;
     }
     
     #search-btn {
@@ -81,6 +87,11 @@
     #search-btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    #search-btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.4);
     }
     
     #search-btn:disabled {
@@ -102,12 +113,17 @@
       border-radius: 20px;
       font-size: 14px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: background-color 0.2s, color 0.2s;
     }
     
     .category-tab.active {
       background: #667eea;
       color: white;
+    }
+
+    .category-tab:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.4);
     }
     
     .category-tab:hover:not(.active) {
@@ -164,6 +180,11 @@
       color: #667eea;
     }
     
+    .suggestion-item a:focus-visible {
+      outline: 2px solid #667eea;
+      outline-offset: 2px;
+    }
+    
     .loading {
       text-align: center;
       padding: 40px;
@@ -182,6 +203,17 @@
     
     @keyframes spin {
       to { transform: rotate(360deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .loading-spinner {
+        animation: none;
+        border-top-color: rgba(255,255,255,0.3);
+        border-right-color: white;
+      }
+      *, *::before, *::after {
+        transition-duration: 0.01ms !important;
+      }
     }
     
     .empty-state {
@@ -220,11 +252,16 @@
       color: white;
       font-size: 14px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: background-color 0.2s;
     }
     
     .example-chip:hover {
       background: rgba(255,255,255,0.3);
+    }
+
+    .example-chip:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.5);
     }
     
     .error {
@@ -246,6 +283,11 @@
       color: white;
     }
 
+    footer a:focus-visible {
+      outline: 2px solid white;
+      outline-offset: 2px;
+    }
+
     @media (max-width: 600px) {
       h1 { font-size: 1.8rem; }
       .search-input-wrapper { flex-direction: column; }
@@ -260,39 +302,42 @@
       <p class="subtitle">Discover what the world is curious about</p>
     </header>
     
-    <div class="search-box">
-      <div class="search-input-wrapper">
-        <input type="text" id="search-input" placeholder="Search an artist, song, genre, or album..." autocomplete="off">
-        <button id="search-btn">Search</button>
+    <main>
+      <div class="search-box">
+        <div class="search-input-wrapper">
+          <label for="search-input" class="visually-hidden" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;">Search query</label>
+          <input type="text" id="search-input" placeholder="Search an artist, song, genre, or album…" autocomplete="off">
+          <button id="search-btn" type="button">Search</button>
+        </div>
+        <div class="category-tabs" role="tablist" aria-label="Category">
+          <button class="category-tab active" data-category="artist" role="tab" aria-selected="true">🎤 Artist</button>
+          <button class="category-tab" data-category="song" role="tab" aria-selected="false">🎵 Song</button>
+          <button class="category-tab" data-category="genre" role="tab" aria-selected="false">🎸 Genre</button>
+          <button class="category-tab" data-category="album" role="tab" aria-selected="false">💿 Album</button>
+        </div>
       </div>
-      <div class="category-tabs">
-        <button class="category-tab active" data-category="artist">🎤 Artist</button>
-        <button class="category-tab" data-category="song">🎵 Song</button>
-        <button class="category-tab" data-category="genre">🎸 Genre</button>
-        <button class="category-tab" data-category="album">💿 Album</button>
-      </div>
-    </div>
-    
-    <div id="results-container">
-      <div class="empty-state">
-        <div class="emoji">🔍</div>
-        <p>Search for any artist, song, genre, or album to see what people are googling about it!</p>
-        <div class="examples">
-          <h4>Try these examples:</h4>
-          <div class="example-chips">
-            <span class="example-chip" data-query="Taylor Swift" data-category="artist">Taylor Swift</span>
-            <span class="example-chip" data-query="Bohemian Rhapsody" data-category="song">Bohemian Rhapsody</span>
-            <span class="example-chip" data-query="Hip Hop" data-category="genre">Hip Hop</span>
-            <span class="example-chip" data-query="Thriller" data-category="album">Thriller</span>
-            <span class="example-chip" data-query="The Beatles" data-category="artist">The Beatles</span>
-            <span class="example-chip" data-query="Jazz" data-category="genre">Jazz</span>
+      
+      <div id="results-container" aria-live="polite">
+        <div class="empty-state">
+          <div class="emoji" aria-hidden="true">🔍</div>
+          <p>Search for any artist, song, genre, or album to see what people are googling about it!</p>
+          <div class="examples">
+            <h4>Try these examples:</h4>
+            <div class="example-chips">
+              <button class="example-chip" data-query="Taylor Swift" data-category="artist" type="button">Taylor Swift</button>
+              <button class="example-chip" data-query="Bohemian Rhapsody" data-category="song" type="button">Bohemian Rhapsody</button>
+              <button class="example-chip" data-query="Hip Hop" data-category="genre" type="button">Hip Hop</button>
+              <button class="example-chip" data-query="Thriller" data-category="album" type="button">Thriller</button>
+              <button class="example-chip" data-query="The Beatles" data-category="artist" type="button">The Beatles</button>
+              <button class="example-chip" data-query="Jazz" data-category="genre" type="button">Jazz</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </main>
     
     <footer>
-      <p>Inspired by <a href="https://github.com/anvaka/what-people-google" target="_blank">what-people-google</a> by anvaka</p>
+      <p>Inspired by <a href="https://github.com/anvaka/what-people-google" target="_blank" rel="noopener noreferrer">what-people-google</a> by anvaka</p>
     </footer>
   </div>
   
