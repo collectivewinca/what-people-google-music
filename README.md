@@ -56,12 +56,12 @@ npm run build  # Production bundle
 
 ## What's Next
 
-- [ ] **Open Graph meta tags** — Rich previews when sharing links on Slack, Twitter, iMessage
-- [ ] **Favicon** — Amber music note icon for browser tabs
-- [ ] **Keyboard shortcut** — Press `/` to focus search input
-- [ ] **Grid View landing page** — Browse 30-40 curated artists/songs/genres as cards
+- [x] **Open Graph meta tags** — Rich previews when sharing links on Slack, Twitter, iMessage
+- [x] **Favicon** — Amber music note icon for browser tabs (inline SVG)
+- [x] **Keyboard shortcut** — Press `/` to focus search input
+- [x] **Grid View landing page** — Browse 40 curated artists/songs/genres/albums as discovery cards
+- [x] **Animated state transitions** — Fade/stagger animations between empty, loading, and results
 - [ ] **PWA / offline support** — Service worker + manifest for installable offline app
-- [ ] **Animated state transitions** — Fade/stagger animations between empty, loading, and results
 - [ ] **Pre-computed popular data** — Ship top 100 searches as static JSON for instant first load
 - [ ] **Result comparison** — Search two terms side-by-side (e.g., Beatles vs Rolling Stones)
 - [ ] **Trending indicator** — Flag new/trending suggestions by comparing against older cached results

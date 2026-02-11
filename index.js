@@ -23,10 +23,53 @@
   var searchBtn = document.getElementById('search-btn');
   var resultsContainer = document.getElementById('results-container');
   var categoryTabs = document.querySelectorAll('.category-tab');
-  var exampleChips = document.querySelectorAll('.example-chip');
 
   // Valid categories for URL param validation
   var VALID_CATEGORIES = ['artist', 'song', 'genre', 'album'];
+
+  // Curated discovery items for the landing grid
+  var DISCOVERY_ITEMS = [
+    { name: 'Taylor Swift', category: 'artist', emoji: '\uD83C\uDFB5' },
+    { name: 'The Beatles', category: 'artist', emoji: '\uD83E\uDD1A' },
+    { name: 'Drake', category: 'artist', emoji: '\uD83E\uDD89' },
+    { name: 'BTS', category: 'artist', emoji: '\uD83D\uDC9C' },
+    { name: 'Beyonce', category: 'artist', emoji: '\uD83D\uDC1D' },
+    { name: 'Radiohead', category: 'artist', emoji: '\uD83D\uDCFB' },
+    { name: 'Billie Eilish', category: 'artist', emoji: '\uD83D\uDDA4' },
+    { name: 'Kanye West', category: 'artist', emoji: '\uD83D\uDCBF' },
+    { name: 'Adele', category: 'artist', emoji: '\uD83C\uDFA4' },
+    { name: 'Bad Bunny', category: 'artist', emoji: '\uD83D\uDC30' },
+    { name: 'Kendrick Lamar', category: 'artist', emoji: '\uD83D\uDD25' },
+    { name: 'Lady Gaga', category: 'artist', emoji: '\u2B50' },
+    { name: 'Bohemian Rhapsody', category: 'song', emoji: '\uD83C\uDFB9' },
+    { name: 'Stairway to Heaven', category: 'song', emoji: '\u2601\uFE0F' },
+    { name: 'Imagine', category: 'song', emoji: '\u2764\uFE0F' },
+    { name: 'Smells Like Teen Spirit', category: 'song', emoji: '\uD83E\uDDEA' },
+    { name: 'Hotel California', category: 'song', emoji: '\uD83C\uDFE8' },
+    { name: 'Shape of You', category: 'song', emoji: '\uD83D\uDC83' },
+    { name: 'Despacito', category: 'song', emoji: '\u2600\uFE0F' },
+    { name: 'Blinding Lights', category: 'song', emoji: '\uD83D\uDCA1' },
+    { name: 'Yesterday', category: 'song', emoji: '\uD83D\uDCC5' },
+    { name: 'Thriller', category: 'song', emoji: '\uD83D\uDC7B' },
+    { name: 'Hip Hop', category: 'genre', emoji: '\uD83C\uDFA4' },
+    { name: 'Jazz', category: 'genre', emoji: '\uD83C\uDFB7' },
+    { name: 'Classical', category: 'genre', emoji: '\uD83C\uDFBB' },
+    { name: 'K-Pop', category: 'genre', emoji: '\uD83C\uDDF0\uD83C\uDDF7' },
+    { name: 'Reggaeton', category: 'genre', emoji: '\uD83C\uDFDD\uFE0F' },
+    { name: 'Country', category: 'genre', emoji: '\uD83E\uDE95' },
+    { name: 'EDM', category: 'genre', emoji: '\uD83D\uDD0A' },
+    { name: 'R&B', category: 'genre', emoji: '\uD83D\uDC9F' },
+    { name: 'Metal', category: 'genre', emoji: '\uD83E\uDD18' },
+    { name: 'Punk', category: 'genre', emoji: '\u26A1' },
+    { name: 'Thriller', category: 'album', emoji: '\uD83C\uDF15' },
+    { name: 'Abbey Road', category: 'album', emoji: '\uD83D\uDEB6' },
+    { name: 'The Dark Side of the Moon', category: 'album', emoji: '\uD83C\uDF11' },
+    { name: 'Rumours', category: 'album', emoji: '\uD83D\uDCAC' },
+    { name: 'Back in Black', category: 'album', emoji: '\u26A1' },
+    { name: 'Born to Die', category: 'album', emoji: '\uD83C\uDF39' },
+    { name: '1989', category: 'album', emoji: '\uD83D\uDCF7' },
+    { name: 'Good Kid M.A.A.D City', category: 'album', emoji: '\uD83C\uDFD9\uFE0F' }
+  ];
 
   // Cache settings
   var CACHE_PREFIX = 'wpg_';
@@ -140,23 +183,6 @@
       });
     });
 
-    // Example chip clicks
-    exampleChips.forEach(function(chip) {
-      chip.addEventListener('click', function() {
-        searchInput.value = chip.dataset.query;
-        // Set the category
-        var cat = chip.dataset.category;
-        categoryTabs.forEach(function(t) {
-          var isSelected = t.dataset.category === cat;
-          t.classList.toggle('active', isSelected);
-          t.setAttribute('aria-selected', isSelected ? 'true' : 'false');
-          t.setAttribute('tabindex', isSelected ? '0' : '-1');
-        });
-        currentCategory = cat;
-        performSearch();
-      });
-    });
-
     // Search button click
     searchBtn.addEventListener('click', performSearch);
 
@@ -172,15 +198,19 @@
       tab.setAttribute('tabindex', index === 0 ? '0' : '-1');
     });
 
-    // Render search history in initial empty state
-    var historyHtml = renderHistory();
-    if (historyHtml) {
-      var examples = resultsContainer.querySelector('.examples');
-      if (examples) {
-        examples.insertAdjacentHTML('beforebegin', historyHtml);
-        attachHistoryHandlers();
+    // Render initial empty state with discovery grid and history
+    renderEmptyState();
+
+    // Keyboard shortcut: "/" focuses search input
+    document.addEventListener('keydown', function(e) {
+      if (e.key === '/' &&
+          document.activeElement.tagName !== 'INPUT' &&
+          document.activeElement.tagName !== 'TEXTAREA' &&
+          !document.activeElement.isContentEditable) {
+        e.preventDefault();
+        searchInput.focus();
       }
-    }
+    });
 
     // Deep link: restore state from URL parameters
     var urlParams = new URLSearchParams(window.location.search);
@@ -364,11 +394,13 @@
 
   function showLoading() {
     resultsContainer.setAttribute('aria-busy', 'true');
-    resultsContainer.innerHTML = 
-      '<div class="loading">' +
-        '<div class="loading-spinner" role="status" aria-label="Loading"></div>' +
-        '<p>Searching what people google…</p>' +
-      '</div>';
+    transitionState(function() {
+      resultsContainer.innerHTML =
+        '<div class="loading state-enter">' +
+          '<div class="loading-spinner" role="status" aria-label="Loading"></div>' +
+          '<p>Searching what people google\u2026</p>' +
+        '</div>';
+    });
   }
 
   function showError(message) {
@@ -478,16 +510,7 @@
     var historyChips = document.querySelectorAll('.history-chip');
     historyChips.forEach(function(chip) {
       chip.addEventListener('click', function() {
-        searchInput.value = chip.dataset.query;
-        var cat = chip.dataset.category;
-        categoryTabs.forEach(function(t) {
-          var isSelected = t.dataset.category === cat;
-          t.classList.toggle('active', isSelected);
-          t.setAttribute('aria-selected', isSelected ? 'true' : 'false');
-          t.setAttribute('tabindex', isSelected ? '0' : '-1');
-        });
-        currentCategory = cat;
-        performSearch();
+        triggerSearchFromChip(chip.dataset.query, chip.dataset.category);
       });
     });
 
@@ -495,6 +518,61 @@
     if (clearBtn) {
       clearBtn.addEventListener('click', clearHistory);
     }
+  }
+
+  function triggerSearchFromChip(query, category) {
+    searchInput.value = query;
+    categoryTabs.forEach(function(t) {
+      var isSelected = t.dataset.category === category;
+      t.classList.toggle('active', isSelected);
+      t.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+      t.setAttribute('tabindex', isSelected ? '0' : '-1');
+    });
+    currentCategory = category;
+    performSearch();
+  }
+
+  function renderEmptyState() {
+    var html = '<div class="empty-state">';
+    html += '<div class="icon" aria-hidden="true">';
+    html += '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">';
+    html += '<path stroke-linecap="round" stroke-linejoin="round" d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" />';
+    html += '</svg></div>';
+    html += '<p>Search for any artist, song, genre, or album to see what people are googling about it</p>';
+
+    // Recent searches
+    var historyHtml = renderHistory();
+    if (historyHtml) {
+      html += historyHtml;
+    }
+
+    // Discovery grid
+    html += '<div class="discovery-header"><h4>Discover</h4></div>';
+    html += '<div class="discovery-grid">';
+
+    DISCOVERY_ITEMS.forEach(function(item, idx) {
+      html += '<button class="discovery-card card-enter" style="animation-delay:' + (idx * 0.03) + 's" ' +
+              'data-query="' + escapeHtml(item.name) + '" data-category="' + escapeHtml(item.category) + '" type="button">';
+      html += '<span class="discovery-card-emoji" aria-hidden="true">' + item.emoji + '</span>';
+      html += '<span class="discovery-card-name">' + escapeHtml(item.name) + '</span>';
+      html += '<span class="discovery-card-badge">' + escapeHtml(item.category) + '</span>';
+      html += '</button>';
+    });
+
+    html += '</div></div>';
+
+    resultsContainer.innerHTML = html;
+    attachDiscoveryHandlers();
+    attachHistoryHandlers();
+  }
+
+  function attachDiscoveryHandlers() {
+    var cards = document.querySelectorAll('.discovery-card');
+    cards.forEach(function(card) {
+      card.addEventListener('click', function() {
+        triggerSearchFromChip(card.dataset.query, card.dataset.category);
+      });
+    });
   }
 
   function buildShareUrl() {
@@ -508,66 +586,70 @@
 
   function renderResults(query, results) {
     resultsContainer.setAttribute('aria-busy', 'false');
-    
+
     // Filter out empty results
     var nonEmpty = results.filter(function(r) { return r.suggestions.length > 0; });
 
     if (nonEmpty.length === 0) {
-      resultsContainer.innerHTML = 
-        '<div class="empty-state">' +
-          '<div class="icon" aria-hidden="true">' +
-            '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">' +
-              '<path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />' +
-            '</svg>' +
-          '</div>' +
-          '<p>No autocomplete results found for "' + escapeHtml(query) + '"</p>' +
-          '<p style="margin-top:12px;color:var(--neutral-400);">Try a different search term</p>' +
-        '</div>';
+      transitionState(function() {
+        resultsContainer.innerHTML =
+          '<div class="empty-state state-enter">' +
+            '<div class="icon" aria-hidden="true">' +
+              '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">' +
+                '<path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />' +
+              '</svg>' +
+            '</div>' +
+            '<p>No autocomplete results found for "' + escapeHtml(query) + '"</p>' +
+            '<p style="margin-top:12px;color:var(--neutral-400);">Try a different search term</p>' +
+          '</div>';
+      });
       return;
     }
 
     var html = '<div class="results">';
-    
-    nonEmpty.forEach(function(result) {
-      html += '<div class="result-card">';
+
+    nonEmpty.forEach(function(result, idx) {
+      html += '<div class="result-card card-enter" style="animation-delay:' + (idx * 0.07) + 's">';
       html += '<h3>' + escapeHtml(result.display) + '</h3>';
       html += '<ul class="suggestion-list">';
-      
+
       result.suggestions.slice(0, 8).forEach(function(suggestion) {
         var formatted = formatSuggestion(suggestion, result.prefix, query);
         var searchUrl = 'https://www.google.com/search?q=' + encodeURIComponent(suggestion);
         html += '<li class="suggestion-item"><a href="' + searchUrl + '" target="_blank" rel="noopener noreferrer">' + formatted + '</a></li>';
       });
-      
+
       html += '</ul>';
       html += '</div>';
     });
-    
+
     html += '</div>';
 
-    // Share button (static content, no user input)
-    html += '<div class="share-actions">';
+    // Share button
+    html += '<div class="share-actions card-enter" style="animation-delay:' + (nonEmpty.length * 0.07) + 's">';
     html += '<button id="share-results-btn" class="share-btn" type="button" aria-label="Share these results">';
     html += '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="18" height="18" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"/></svg>';
     html += ' Share Results';
     html += '</button>';
     html += '</div>';
 
-    resultsContainer.innerHTML = html;
+    transitionState(function() {
+      resultsContainer.innerHTML = html;
 
-    // Update browser URL to reflect current search
-    if (window.history && window.history.replaceState) {
-      history.replaceState(null, '', buildShareUrl());
-    }
+      // Update browser URL to reflect current search
+      if (window.history && window.history.replaceState) {
+        history.replaceState(null, '', buildShareUrl());
+      }
 
-    // Add to search history
-    addToHistory(query, currentCategory);
+      // Add to search history
+      addToHistory(query, currentCategory);
 
-    // Attach share button handler
-    var shareResultsBtn = document.getElementById('share-results-btn');
-    if (shareResultsBtn) {
-      shareResultsBtn.addEventListener('click', handleShare);
-    }
+      // Attach share button handler
+      var shareResultsBtn = document.getElementById('share-results-btn');
+      if (shareResultsBtn) {
+        shareResultsBtn.addEventListener('click', handleShare);
+      }
+    });
   }
 
   function formatSuggestion(suggestion, prefix, query) {
@@ -588,6 +670,27 @@
     var div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  function transitionState(newContentFn) {
+    var current = resultsContainer.firstElementChild;
+    var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (!current || prefersReducedMotion) {
+      newContentFn();
+      return;
+    }
+
+    var done = false;
+    function finish() {
+      if (done) return;
+      done = true;
+      newContentFn();
+    }
+
+    current.classList.add('state-exit');
+    current.addEventListener('animationend', finish, { once: true });
+    setTimeout(finish, 250);
   }
 
 })();
