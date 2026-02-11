@@ -404,12 +404,87 @@
       border: 0;
     }
 
+    .share-actions {
+      text-align: center;
+      margin-top: 24px;
+    }
+
+    .share-btn {
+      padding: 12px 24px;
+      background: transparent;
+      border: 1px solid var(--amber-dim);
+      border-radius: 9999px;
+      font-size: 14px;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+      color: var(--amber);
+      cursor: pointer;
+      transition: background-color 0.2s, border-color 0.2s, transform 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .share-btn:hover {
+      background: var(--amber-glow);
+      border-color: var(--amber);
+      transform: translateY(-1px);
+    }
+
+    .share-btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px var(--amber-glow);
+    }
+
+    .share-btn:active {
+      transform: translateY(0);
+    }
+
+    .share-feedback {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--amber);
+      color: var(--black);
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Montserrat', sans-serif;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+    }
+
+    .share-feedback.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .share-feedback {
+        transition: none;
+      }
+    }
+
     @media (max-width: 600px) {
       .logo { font-size: 2.2rem; }
       header { padding: 40px 20px 30px; }
       .search-input-wrapper { flex-direction: column; }
       #search-btn { width: 100%; }
       .empty-state { padding: 60px 20px; }
+      .share-feedback {
+        left: 20px;
+        right: 20px;
+        transform: translateY(20px);
+        text-align: center;
+      }
+      .share-feedback.visible {
+        transform: translateY(0);
+      }
     }
   </style>
 </head>

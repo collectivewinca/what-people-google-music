@@ -25,6 +25,9 @@
   var categoryTabs = document.querySelectorAll('.category-tab');
   var exampleChips = document.querySelectorAll('.example-chip');
 
+  // Valid categories for URL param validation
+  var VALID_CATEGORIES = ['artist', 'song', 'genre', 'album'];
+
   // State
   var currentCategory = 'artist';
   var isLoading = false;
@@ -99,6 +102,27 @@
     categoryTabs.forEach(function(tab, index) {
       tab.setAttribute('tabindex', index === 0 ? '0' : '-1');
     });
+
+    // Deep link: restore state from URL parameters
+    var urlParams = new URLSearchParams(window.location.search);
+    var urlQuery = urlParams.get('q');
+    var urlCategory = urlParams.get('c');
+
+    if (urlQuery) {
+      searchInput.value = urlQuery;
+
+      if (urlCategory && VALID_CATEGORIES.indexOf(urlCategory) !== -1) {
+        categoryTabs.forEach(function(t) {
+          var isSelected = t.dataset.category === urlCategory;
+          t.classList.toggle('active', isSelected);
+          t.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+          t.setAttribute('tabindex', isSelected ? '0' : '-1');
+        });
+        currentCategory = urlCategory;
+      }
+
+      performSearch();
+    }
   }
 
   function selectTab(tab) {
@@ -257,6 +281,91 @@
     resultsContainer.innerHTML = '<div class="error" role="alert">' + escapeHtml(message) + '</div>';
   }
 
+  function handleShare() {
+    var shareUrl = window.location.origin + buildShareUrl();
+    var query = searchInput.value.trim();
+
+    if (navigator.share) {
+      navigator.share({
+        title: 'What People Google About ' + query,
+        url: shareUrl
+      }).catch(function(err) {
+        if (err.name !== 'AbortError') {
+          copyToClipboard(shareUrl);
+        }
+      });
+    } else {
+      copyToClipboard(shareUrl);
+    }
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text)
+        .then(function() { showShareFeedback('Link copied!'); })
+        .catch(function() { fallbackCopy(text); });
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    var textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      showShareFeedback('Link copied!');
+    } catch (e) {
+      showShareFeedback('Could not copy link', true);
+    }
+    document.body.removeChild(textarea);
+  }
+
+  function showShareFeedback(message, isError) {
+    // Remove any existing toast
+    var existing = document.querySelector('.share-feedback');
+    if (existing) existing.parentNode.removeChild(existing);
+
+    var toast = document.createElement('div');
+    toast.className = 'share-feedback';
+    toast.textContent = message;
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+
+    if (isError) {
+      toast.style.background = 'rgba(239, 68, 68, 0.95)';
+      toast.style.color = '#fff';
+    }
+
+    document.body.appendChild(toast);
+
+    // Trigger enter animation
+    setTimeout(function() {
+      toast.classList.add('visible');
+    }, 10);
+
+    // Auto-dismiss
+    setTimeout(function() {
+      toast.classList.remove('visible');
+      setTimeout(function() {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 300);
+    }, 2000);
+  }
+
+  function buildShareUrl() {
+    var query = searchInput.value.trim();
+    if (!query) return window.location.pathname;
+    var params = new URLSearchParams();
+    params.set('q', query);
+    params.set('c', currentCategory);
+    return window.location.pathname + '?' + params.toString();
+  }
+
   function renderResults(query, results) {
     resultsContainer.setAttribute('aria-busy', 'false');
     
@@ -295,7 +404,27 @@
     });
     
     html += '</div>';
+
+    // Share button (static content, no user input)
+    html += '<div class="share-actions">';
+    html += '<button id="share-results-btn" class="share-btn" type="button" aria-label="Share these results">';
+    html += '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="18" height="18" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"/></svg>';
+    html += ' Share Results';
+    html += '</button>';
+    html += '</div>';
+
     resultsContainer.innerHTML = html;
+
+    // Update browser URL to reflect current search
+    if (window.history && window.history.replaceState) {
+      history.replaceState(null, '', buildShareUrl());
+    }
+
+    // Attach share button handler
+    var shareResultsBtn = document.getElementById('share-results-btn');
+    if (shareResultsBtn) {
+      shareResultsBtn.addEventListener('click', handleShare);
+    }
   }
 
   function formatSuggestion(suggestion, prefix, query) {
