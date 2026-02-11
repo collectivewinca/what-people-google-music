@@ -1,34 +1,26 @@
-# 🎵 What People Google About Music
+# What People Google About Music
 
-Discover what the world is curious about when it comes to music! Search for any artist, song, genre, or album to see real Google autocomplete suggestions.
+Discover what the world is curious about when it comes to music. Search for any artist, song, genre, or album to see real Google autocomplete suggestions.
 
-![Screenshot](docs/screenshot.png)
+**Try it live:** [what-people-google-music.netlify.app](https://what-people-google-music.netlify.app)
 
 ## Features
 
-- **Search anything**: Artists, songs, genres, albums
-- **7 question types**: "Why is...", "Why does...", "Is...", "Does...", "How...", "When will...", "Can..."
-- **Real-time results**: Fetches live Google autocomplete data
-- **Click to search**: Each suggestion links to Google search
-
-## Demo
-
-Try it live: [what-people-google-music.netlify.app](https://what-people-google-music.netlify.app)
+- **Category search** — Choose Artist, Song, Genre, or Album to get category-specific results
+- **7 question types** — "Why is...", "Why does...", "Is...", "Does...", "How...", "When will...", "Can..."
+- **Shareable links** — Every search generates a deep link you can share (`?q=Taylor+Swift&c=artist`)
+- **Instant cache** — Repeat searches load from localStorage in ~200ms (24-hour TTL)
+- **Search history** — Recent searches appear as clickable chips on the landing page
+- **Accessible** — Keyboard navigation, ARIA attributes, screen reader support, reduced motion
+- **Zero dependencies** — Vanilla JS, ~15KB bundle
 
 ## Quick Start
 
 ```bash
-# Clone the repo
-git clone https://github.com/yourusername/what-people-google-music.git
+git clone https://github.com/collectivewinca/what-people-google-music.git
 cd what-people-google-music
-
-# Install dependencies
 npm install
-
-# Build
 npm run build
-
-# Start dev server
 npm run server
 # Open http://localhost:8080
 ```
@@ -36,8 +28,8 @@ npm run server
 ## Development
 
 ```bash
-# Watch mode + server
-npm run dev
+npm run dev    # Watch mode + dev server
+npm run build  # Production bundle
 ```
 
 ## Example Searches
@@ -49,12 +41,24 @@ npm run dev
 
 ## How It Works
 
-This app uses Google's autocomplete suggestions API via JSONP to fetch real-time data about what people are searching for. Each search term is combined with different question prefixes to show various curiosities people have.
+1. User enters a search term and selects a category
+2. The app sends 7 JSONP requests to Google's autocomplete API (one per question prefix)
+3. Results are categorized, filtered, and displayed in glassmorphism cards
+4. Results are cached in localStorage for instant repeat access
+5. The browser URL updates for shareability via `history.replaceState`
+
+## Design
+
+- MINY-inspired dark theme with amber (#fbbf24) accents
+- Montserrat typography
+- Glassmorphism cards with backdrop blur
+- Responsive layout (mobile + desktop)
 
 ## Credits
 
 - Forked from [anvaka/what-people-google](https://github.com/anvaka/what-people-google)
-- Inspired by the original country/state map visualization
+- Design inspired by [MINY Vinyl](https://minyvinyl.com)
+- Built by [VeLab](https://velab.org)
 
 ## License
 
