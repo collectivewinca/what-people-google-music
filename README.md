@@ -13,7 +13,7 @@ Discover what the world is curious about when it comes to music! Search for any 
 
 ## Demo
 
-Try it live: [your-netlify-url.netlify.app](https://your-netlify-url.netlify.app)
+Try it live: [what-people-google-music.netlify.app](https://what-people-google-music.netlify.app)
 
 ## Quick Start
 

@@ -28,6 +28,7 @@
   // State
   var currentCategory = 'artist';
   var isLoading = false;
+  var callbackCounter = 0;
 
   // Initialize
   init();
@@ -125,22 +126,43 @@
         // Ensure minimum loading duration to prevent flicker
         var elapsed = Date.now() - loadingStartTime;
         var remaining = Math.max(0, MIN_LOADING_DURATION - elapsed);
-        
+
         setTimeout(function() {
+          isLoading = false;
+          searchBtn.disabled = false;
           renderResults(query, results);
         }, remaining);
       })
       .catch(function(err) {
-        showError('Failed to fetch suggestions. Please try again.');
-        console.error(err);
-      })
-      .finally(function() {
         isLoading = false;
         searchBtn.disabled = false;
+        showError('Failed to fetch suggestions. Please try again.');
+        console.error(err);
       });
   }
 
+  /**
+   * Build the autocomplete query string from prefix, search term, and category.
+   * Called once per question type (e.g. prefix="why is", query="Thriller", category="album").
+   *
+   * TODO: Implement your query-building strategy here.
+   *
+   * Considerations:
+   *   - "artist" is the default; most artist names work fine without a qualifier.
+   *   - For songs/genres/albums, appending the category helps Google disambiguate
+   *     (e.g. "Thriller" the album vs. the song vs. the Michael Jackson question).
+   *   - You could also skip the category entirely for certain prefixes if it reads awkwardly.
+   *   - Return a single string that will be passed to Google's autocomplete API.
+   */
+  function buildQuery(prefix, query, category) {
+    if (category === 'artist') {
+      return prefix + ' ' + query;
+    }
+    return prefix + ' ' + query + ' ' + category;
+  }
+
   function fetchAllQuestionTypes(query) {
+    var category = currentCategory;
     return new Promise(function(resolve) {
       var results = [];
       var index = 0;
@@ -152,11 +174,11 @@
         }
 
         var qt = QUESTION_TYPES[index];
-        fetchSuggestions(qt.prefix + ' ' + query)
+        fetchSuggestions(buildQuery(qt.prefix, query, category))
           .then(function(suggestions) {
             results.push({
               id: qt.id,
-              display: qt.display.replace('[name]', query),
+              display: qt.display.split('[name]').join(query),
               prefix: qt.prefix,
               suggestions: suggestions
             });
@@ -164,7 +186,7 @@
           .catch(function() {
             results.push({
               id: qt.id,
-              display: qt.display.replace('[name]', query),
+              display: qt.display.split('[name]').join(query),
               prefix: qt.prefix,
               suggestions: []
             });
@@ -183,7 +205,7 @@
   function fetchSuggestions(query) {
     return new Promise(function(resolve, reject) {
       // Use JSONP callback
-      var callbackName = 'ac_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
+      var callbackName = 'ac_' + (++callbackCounter);
       var script = document.createElement('script');
       var timeout;
 

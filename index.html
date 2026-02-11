@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#000000">
   <title>What People Google About Music</title>
   <meta name="description" content="Discover what people search about your favorite artists, songs, and genres">
@@ -392,6 +392,18 @@
       outline-offset: 2px;
     }
 
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
     @media (max-width: 600px) {
       .logo { font-size: 2.2rem; }
       header { padding: 40px 20px 30px; }
@@ -411,7 +423,7 @@
     <main>
       <div class="search-box">
         <div class="search-input-wrapper">
-          <label for="search-input" class="visually-hidden" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;">Search query</label>
+          <label for="search-input" class="visually-hidden">Search query</label>
           <input type="text" id="search-input" name="search" placeholder="Search an artist, song, genre, or album…" autocomplete="off">
           <button id="search-btn" type="button">Search</button>
         </div>
