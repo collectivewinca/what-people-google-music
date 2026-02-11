@@ -54,6 +54,18 @@ npm run build  # Production bundle
 - Glassmorphism cards with backdrop blur
 - Responsive layout (mobile + desktop)
 
+## What's Next
+
+- [ ] **Open Graph meta tags** — Rich previews when sharing links on Slack, Twitter, iMessage
+- [ ] **Favicon** — Amber music note icon for browser tabs
+- [ ] **Keyboard shortcut** — Press `/` to focus search input
+- [ ] **Grid View landing page** — Browse 30-40 curated artists/songs/genres as cards
+- [ ] **PWA / offline support** — Service worker + manifest for installable offline app
+- [ ] **Animated state transitions** — Fade/stagger animations between empty, loading, and results
+- [ ] **Pre-computed popular data** — Ship top 100 searches as static JSON for instant first load
+- [ ] **Result comparison** — Search two terms side-by-side (e.g., Beatles vs Rolling Stones)
+- [ ] **Trending indicator** — Flag new/trending suggestions by comparing against older cached results
+
 ## Credits
 
 - Forked from [anvaka/what-people-google](https://github.com/anvaka/what-people-google)
