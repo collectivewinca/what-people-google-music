@@ -351,19 +351,40 @@
       padding: 60px 20px 40px;
     }
     
-    footer p {
-      color: var(--neutral-400);
-      font-size: 14px;
+    .footer-links {
+      margin-bottom: 16px;
     }
     
-    footer a {
+    .footer-links a {
       color: var(--amber);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 15px;
+      transition: color 0.2s;
+    }
+    
+    .footer-links a:hover {
+      color: var(--amber-hover);
+    }
+    
+    .footer-links .divider {
+      color: var(--neutral-700);
+      margin: 0 12px;
+    }
+    
+    footer p {
+      color: var(--neutral-400);
+      font-size: 13px;
+    }
+    
+    footer p a {
+      color: var(--neutral-300);
       text-decoration: none;
       transition: color 0.2s;
     }
     
-    footer a:hover {
-      color: var(--amber-hover);
+    footer p a:hover {
+      color: var(--amber);
     }
 
     footer a:focus-visible {
@@ -426,6 +447,11 @@
     </main>
     
     <footer>
+      <div class="footer-links">
+        <a href="https://minyvinyl.com" target="_blank" rel="noopener noreferrer">MINY</a>
+        <span class="divider">·</span>
+        <a href="https://velab.org" target="_blank" rel="noopener noreferrer">VeLab</a>
+      </div>
       <p>Inspired by <a href="https://github.com/anvaka/what-people-google" target="_blank" rel="noopener noreferrer">what-people-google</a> by anvaka</p>
     </footer>
   </div>
