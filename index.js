@@ -28,10 +28,79 @@
   // Valid categories for URL param validation
   var VALID_CATEGORIES = ['artist', 'song', 'genre', 'album'];
 
+  // Cache settings
+  var CACHE_PREFIX = 'wpg_';
+  var CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+  var HISTORY_KEY = 'wpg_history';
+  var MAX_HISTORY = 8;
+
   // State
   var currentCategory = 'artist';
   var isLoading = false;
   var callbackCounter = 0;
+
+  // Cache helpers
+  function cacheKey(query, category) {
+    return CACHE_PREFIX + query.toLowerCase() + '|' + category;
+  }
+
+  function getCachedResults(query, category) {
+    try {
+      var raw = localStorage.getItem(cacheKey(query, category));
+      if (!raw) return null;
+      var entry = JSON.parse(raw);
+      if (Date.now() - entry.ts > CACHE_TTL) {
+        localStorage.removeItem(cacheKey(query, category));
+        return null;
+      }
+      return entry.results;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function setCachedResults(query, category, results) {
+    try {
+      localStorage.setItem(cacheKey(query, category), JSON.stringify({
+        results: results,
+        ts: Date.now()
+      }));
+    } catch (e) {
+      // localStorage full or unavailable — silently ignore
+    }
+  }
+
+  // History helpers
+  function getHistory() {
+    try {
+      return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function addToHistory(query, category) {
+    try {
+      var history = getHistory();
+      // Remove duplicate if exists
+      history = history.filter(function(h) {
+        return !(h.q.toLowerCase() === query.toLowerCase() && h.c === category);
+      });
+      // Prepend new entry
+      history.unshift({ q: query, c: category });
+      // Cap at max
+      if (history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    } catch (e) {
+      // silently ignore
+    }
+  }
+
+  function clearHistory() {
+    try { localStorage.removeItem(HISTORY_KEY); } catch (e) {}
+    var section = document.querySelector('.history-section');
+    if (section) section.parentNode.removeChild(section);
+  }
 
   // Initialize
   init();
@@ -103,6 +172,16 @@
       tab.setAttribute('tabindex', index === 0 ? '0' : '-1');
     });
 
+    // Render search history in initial empty state
+    var historyHtml = renderHistory();
+    if (historyHtml) {
+      var examples = resultsContainer.querySelector('.examples');
+      if (examples) {
+        examples.insertAdjacentHTML('beforebegin', historyHtml);
+        attachHistoryHandlers();
+      }
+    }
+
     // Deep link: restore state from URL parameters
     var urlParams = new URLSearchParams(window.location.search);
     var urlQuery = urlParams.get('q');
@@ -141,12 +220,28 @@
 
     isLoading = true;
     searchBtn.disabled = true;
-    var loadingStartTime = Date.now();
     showLoading();
+
+    // Check cache first
+    var cached = getCachedResults(query, currentCategory);
+    if (cached) {
+      // Brief loading for smooth UX transition
+      setTimeout(function() {
+        isLoading = false;
+        searchBtn.disabled = false;
+        renderResults(query, cached);
+      }, 200);
+      return;
+    }
+
+    var loadingStartTime = Date.now();
 
     // Fetch all question types sequentially with small delays to avoid rate limiting
     fetchAllQuestionTypes(query)
       .then(function(results) {
+        // Cache the results
+        setCachedResults(query, currentCategory, results);
+
         // Ensure minimum loading duration to prevent flicker
         var elapsed = Date.now() - loadingStartTime;
         var remaining = Math.max(0, MIN_LOADING_DURATION - elapsed);
@@ -357,6 +452,51 @@
     }, 2000);
   }
 
+  function renderHistory() {
+    var history = getHistory();
+    if (history.length === 0) return '';
+
+    var html = '<div class="history-section">';
+    html += '<div class="history-header">';
+    html += '<h4>Recent Searches</h4>';
+    html += '<button class="clear-history" type="button">Clear</button>';
+    html += '</div>';
+    html += '<div class="example-chips">';
+
+    history.forEach(function(entry) {
+      html += '<button class="example-chip history-chip" data-query="' +
+        escapeHtml(entry.q) + '" data-category="' + escapeHtml(entry.c) +
+        '" type="button">' + escapeHtml(entry.q) +
+        '<span class="chip-category">' + escapeHtml(entry.c) + '</span></button>';
+    });
+
+    html += '</div></div>';
+    return html;
+  }
+
+  function attachHistoryHandlers() {
+    var historyChips = document.querySelectorAll('.history-chip');
+    historyChips.forEach(function(chip) {
+      chip.addEventListener('click', function() {
+        searchInput.value = chip.dataset.query;
+        var cat = chip.dataset.category;
+        categoryTabs.forEach(function(t) {
+          var isSelected = t.dataset.category === cat;
+          t.classList.toggle('active', isSelected);
+          t.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+          t.setAttribute('tabindex', isSelected ? '0' : '-1');
+        });
+        currentCategory = cat;
+        performSearch();
+      });
+    });
+
+    var clearBtn = document.querySelector('.clear-history');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', clearHistory);
+    }
+  }
+
   function buildShareUrl() {
     var query = searchInput.value.trim();
     if (!query) return window.location.pathname;
@@ -419,6 +559,9 @@
     if (window.history && window.history.replaceState) {
       history.replaceState(null, '', buildShareUrl());
     }
+
+    // Add to search history
+    addToHistory(query, currentCategory);
 
     // Attach share button handler
     var shareResultsBtn = document.getElementById('share-results-btn');
