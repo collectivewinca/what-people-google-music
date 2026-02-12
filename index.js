@@ -82,6 +82,69 @@
   var isLoading = false;
   var callbackCounter = 0;
 
+  // Theme definitions
+  var THEMES = {
+    miny:     { hex: '#FF5722', bright: '#ff6e40' },
+    matrix:   { hex: '#6cef39', bright: '#8fff5e' },
+    amber:    { hex: '#fbbf24', bright: '#fcd34d' },
+    dank:     { hex: '#00E5FF', bright: '#18FFFF' },
+    phosphor: { hex: '#00ff41', bright: '#33ff66' }
+  };
+
+  var THEME_KEY = 'wpg_theme';
+
+  function hexToRgb(hex) {
+    return {
+      r: parseInt(hex.slice(1, 3), 16),
+      g: parseInt(hex.slice(3, 5), 16),
+      b: parseInt(hex.slice(5, 7), 16)
+    };
+  }
+
+  function applyTheme(themeId) {
+    var theme = THEMES[themeId];
+    if (!theme) return;
+
+    var c = hexToRgb(theme.hex);
+    var rgb = c.r + ',' + c.g + ',' + c.b;
+
+    var root = document.documentElement;
+    root.style.setProperty('--phosphor', theme.hex);
+    root.style.setProperty('--phosphor-bright', theme.bright);
+    root.style.setProperty('--phosphor-dim', 'rgba(' + rgb + ',0.3)');
+    root.style.setProperty('--phosphor-glow', 'rgba(' + rgb + ',0.15)');
+    root.style.setProperty('--phosphor-text', 'rgba(' + rgb + ',0.9)');
+    root.style.setProperty('--phosphor-muted', 'rgba(' + rgb + ',0.5)');
+    root.style.setProperty('--phosphor-shadow', 'rgba(' + rgb + ',0.4)');
+    root.style.setProperty('--phosphor-subtle', 'rgba(' + rgb + ',0.08)');
+    root.style.setProperty('--phosphor-tint', 'rgba(' + rgb + ',0.05)');
+    root.style.setProperty('--border', 'rgba(' + rgb + ',0.25)');
+    root.style.setProperty('--border-bright', 'rgba(' + rgb + ',0.6)');
+
+    var dots = document.querySelectorAll('.theme-dot');
+    dots.forEach(function(dot) {
+      dot.classList.toggle('active', dot.dataset.theme === themeId);
+    });
+
+    try { localStorage.setItem(THEME_KEY, themeId); } catch(e) {}
+  }
+
+  function initTheme() {
+    try {
+      var saved = localStorage.getItem(THEME_KEY);
+      if (saved && THEMES[saved]) {
+        applyTheme(saved);
+      }
+    } catch(e) {}
+
+    var dots = document.querySelectorAll('.theme-dot');
+    dots.forEach(function(dot) {
+      dot.addEventListener('click', function() {
+        applyTheme(dot.dataset.theme);
+      });
+    });
+  }
+
   // Cache helpers
   function cacheKey(query, category) {
     return CACHE_PREFIX + query.toLowerCase() + '|' + category;
@@ -232,6 +295,9 @@
 
       performSearch();
     }
+
+    // Initialize theme
+    initTheme();
   }
 
   function selectTab(tab) {
@@ -398,7 +464,7 @@
       resultsContainer.innerHTML =
         '<div class="loading state-enter">' +
           '<div class="loading-spinner" role="status" aria-label="Loading"></div>' +
-          '<p>Searching what people google\u2026</p>' +
+          '<p>> querying google autocomplete\u2026</p>' +
         '</div>';
     });
   }
@@ -490,8 +556,8 @@
 
     var html = '<div class="history-section">';
     html += '<div class="history-header">';
-    html += '<h4>Recent Searches</h4>';
-    html += '<button class="clear-history" type="button">Clear</button>';
+    html += '<h4>> HISTORY</h4>';
+    html += '<button class="clear-history" type="button">[clear]</button>';
     html += '</div>';
     html += '<div class="example-chips">';
 
@@ -534,11 +600,14 @@
 
   function renderEmptyState() {
     var html = '<div class="empty-state">';
-    html += '<div class="icon" aria-hidden="true">';
-    html += '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">';
-    html += '<path stroke-linecap="round" stroke-linejoin="round" d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 0 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" />';
-    html += '</svg></div>';
-    html += '<p>Search for any artist, song, genre, or album to see what people are googling about it</p>';
+    html += '<pre class="ascii-art" aria-hidden="true">';
+    html += '\u266a \u266b  \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501  \u266b \u266a\n';
+    html += '\u2503  W H A T \u00b7 P E O P L E     \u2503\n';
+    html += '\u2503  G O O G L E \u00b7 M U S I C   \u2503\n';
+    html += '\u2503  \u2584\u2584 \u2584\u2584 \u2584\u2584 \u2584\u2584 \u2584\u2584 \u2584\u2584 \u2584\u2584 \u2584\u2584  \u2503\n';
+    html += '\u2503  \u2588\u2588 \u2588\u2588 \u2588\u2588 \u2588\u2588 \u2588\u2588 \u2588\u2588 \u2588\u2588 \u2588\u2588   \u2503\n';
+    html += '\u266a \u266b  \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501  \u266b \u266a</pre>';
+    html += '<p>> enter any artist, song, genre, or album<br>> see what the world is searching_</p>';
 
     // Recent searches
     var historyHtml = renderHistory();
@@ -547,7 +616,7 @@
     }
 
     // Discovery grid
-    html += '<div class="discovery-header"><h4>Discover</h4></div>';
+    html += '<div class="discovery-header"><h4>> DISCOVER</h4></div>';
     html += '<div class="discovery-grid">';
 
     DISCOVERY_ITEMS.forEach(function(item, idx) {
@@ -594,13 +663,8 @@
       transitionState(function() {
         resultsContainer.innerHTML =
           '<div class="empty-state state-enter">' +
-            '<div class="icon" aria-hidden="true">' +
-              '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">' +
-                '<path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />' +
-              '</svg>' +
-            '</div>' +
-            '<p>No autocomplete results found for "' + escapeHtml(query) + '"</p>' +
-            '<p style="margin-top:12px;color:var(--neutral-400);">Try a different search term</p>' +
+            '<p>> no results found for "' + escapeHtml(query) + '"</p>' +
+            '<p style="margin-top:12px;">> try a different search term_</p>' +
           '</div>';
       });
       return;
