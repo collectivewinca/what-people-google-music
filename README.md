@@ -11,6 +11,10 @@ Discover what the world is curious about when it comes to music. Search for any 
 - **Shareable links** — Every search generates a deep link you can share (`?q=Taylor+Swift&c=artist`)
 - **Instant cache** — Repeat searches load from localStorage in ~200ms (24-hour TTL)
 - **Search history** — Recent searches appear as clickable chips on the landing page
+- **Quick picks while typing** — Inline suggestion chips appear after 2+ characters
+- **Result controls** — Toggle show more/fewer suggestions and enable exact-match bias
+- **Smart no-result recovery** — Fallback chips suggest simplified query/category alternatives
+- **Theme system** — Light mode default with switchable MINY/Matrix/Amber/Dank/Phosphor themes
 - **Accessible** — Keyboard navigation, ARIA attributes, screen reader support, reduced motion
 - **Zero dependencies** — Vanilla JS, ~15KB bundle
 
@@ -42,17 +46,25 @@ npm run build  # Production bundle
 ## How It Works
 
 1. User enters a search term and selects a category
-2. The app sends 7 JSONP requests to Google's autocomplete API (one per question prefix)
-3. Results are categorized, filtered, and displayed in glassmorphism cards
+2. The app sends 7 JSONP requests to Google's autocomplete API in small parallel batches
+3. Results are categorized, filtered, and displayed with optional result controls
 4. Results are cached in localStorage for instant repeat access
 5. The browser URL updates for shareability via `history.replaceState`
 
 ## Design
 
-- MINY-inspired dark theme with amber (#fbbf24) accents
-- Montserrat typography
-- Glassmorphism cards with backdrop blur
-- Responsive layout (mobile + desktop)
+- CRT-inspired MINY aesthetic with multi-theme palette support
+- VT323 typography and responsive component sizing
+- Light theme as first-load default; dark themes available from theme dots
+- Sticky mobile search box for faster repeated searches
+
+## Controls
+
+- Press `/` anywhere to focus the search input
+- Type 2+ characters to reveal quick-pick chips
+- Use `Show more` to expand each result card from 8 to 12 suggestions
+- Use `Exact bias` to favor tighter query-prefix matches in ranking
+- Source note in UI clarifies that suggestions come from Google autocomplete (not ranked SERP)
 
 ## What's Next
 

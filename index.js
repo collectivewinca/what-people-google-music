@@ -17,12 +17,17 @@
 
   // Minimum loading duration to prevent flicker (ms)
   var MIN_LOADING_DURATION = 400;
+  var REQUEST_BATCH_SIZE = 3;
+  var QUICK_PICK_DELAY = 220;
+  var DEFAULT_SUGGESTION_LIMIT = 8;
+  var EXPANDED_SUGGESTION_LIMIT = 12;
 
   // DOM Elements
   var searchInput = document.getElementById('search-input');
   var searchBtn = document.getElementById('search-btn');
   var resultsContainer = document.getElementById('results-container');
   var categoryTabs = document.querySelectorAll('.category-tab');
+  var quickPicksContainer = document.getElementById('quick-picks');
 
   // Valid categories for URL param validation
   var VALID_CATEGORIES = ['artist', 'song', 'genre', 'album'];
@@ -81,17 +86,70 @@
   var currentCategory = 'artist';
   var isLoading = false;
   var callbackCounter = 0;
+  var quickPickTimer = null;
+  var quickPickRequestId = 0;
+  var showMoreSuggestions = false;
+  var exactMatchBias = false;
 
   // Theme definitions
   var THEMES = {
-    miny:     { hex: '#FF5722', bright: '#ff6e40' },
-    matrix:   { hex: '#6cef39', bright: '#8fff5e' },
-    amber:    { hex: '#fbbf24', bright: '#fcd34d' },
-    dank:     { hex: '#00E5FF', bright: '#18FFFF' },
-    phosphor: { hex: '#00ff41', bright: '#33ff66' }
+    light: {
+      hex: '#FF5722',
+      bright: '#ff6e40',
+      mode: 'light',
+      bg: '#f7f2ee',
+      bgCard: '#ffffff',
+      bgInput: '#ffffff',
+      text: '#2f241d',
+      muted: '#7b685d',
+      border: 'rgba(255, 87, 34, 0.35)',
+      borderBright: 'rgba(255, 87, 34, 0.65)'
+    },
+    miny: {
+      hex: '#FF5722',
+      bright: '#ff6e40',
+      mode: 'dark',
+      bg: '#0d0d0d',
+      bgCard: '#141414',
+      bgInput: '#0a0a0a'
+    },
+    matrix: {
+      hex: '#6cef39',
+      bright: '#8fff5e',
+      mode: 'dark',
+      bg: '#0b0f0b',
+      bgCard: '#111711',
+      bgInput: '#090d09'
+    },
+    amber: {
+      hex: '#fbbf24',
+      bright: '#fcd34d',
+      mode: 'dark',
+      bg: '#12100b',
+      bgCard: '#1a1710',
+      bgInput: '#100e09'
+    },
+    dank: {
+      hex: '#00E5FF',
+      bright: '#18FFFF',
+      mode: 'dark',
+      bg: '#090e11',
+      bgCard: '#10181d',
+      bgInput: '#090f13'
+    },
+    phosphor: {
+      hex: '#00ff41',
+      bright: '#33ff66',
+      mode: 'dark',
+      bg: '#091009',
+      bgCard: '#101910',
+      bgInput: '#070d07'
+    }
   };
 
   var THEME_KEY = 'wpg_theme';
+  var RESULT_PREFS_KEY = 'wpg_result_prefs';
+  var DEFAULT_THEME = 'light';
 
   function hexToRgb(hex) {
     return {
@@ -109,17 +167,42 @@
     var rgb = c.r + ',' + c.g + ',' + c.b;
 
     var root = document.documentElement;
+    var body = document.body;
+    var label = document.getElementById('theme-label-value');
+
+    var textColor = theme.text || 'rgba(' + rgb + ',0.9)';
+    var mutedColor = theme.muted || 'rgba(' + rgb + ',0.5)';
+    var borderColor = theme.border || 'rgba(' + rgb + ',0.25)';
+    var borderBrightColor = theme.borderBright || 'rgba(' + rgb + ',0.6)';
+
     root.style.setProperty('--phosphor', theme.hex);
     root.style.setProperty('--phosphor-bright', theme.bright);
     root.style.setProperty('--phosphor-dim', 'rgba(' + rgb + ',0.3)');
     root.style.setProperty('--phosphor-glow', 'rgba(' + rgb + ',0.15)');
-    root.style.setProperty('--phosphor-text', 'rgba(' + rgb + ',0.9)');
-    root.style.setProperty('--phosphor-muted', 'rgba(' + rgb + ',0.5)');
+    root.style.setProperty('--phosphor-text', textColor);
+    root.style.setProperty('--phosphor-muted', mutedColor);
     root.style.setProperty('--phosphor-shadow', 'rgba(' + rgb + ',0.4)');
     root.style.setProperty('--phosphor-subtle', 'rgba(' + rgb + ',0.08)');
     root.style.setProperty('--phosphor-tint', 'rgba(' + rgb + ',0.05)');
-    root.style.setProperty('--border', 'rgba(' + rgb + ',0.25)');
-    root.style.setProperty('--border-bright', 'rgba(' + rgb + ',0.6)');
+    root.style.setProperty('--border', borderColor);
+    root.style.setProperty('--border-bright', borderBrightColor);
+    root.style.setProperty('--bg', theme.bg || '#0d0d0d');
+    root.style.setProperty('--bg-card', theme.bgCard || '#141414');
+    root.style.setProperty('--bg-input', theme.bgInput || '#0a0a0a');
+
+    root.style.colorScheme = theme.mode === 'light' ? 'light' : 'dark';
+    if (body) {
+      body.classList.toggle('light-mode', theme.mode === 'light');
+    }
+
+    var themeColorMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeColorMeta) {
+      themeColorMeta.setAttribute('content', theme.bg || '#0d0d0d');
+    }
+
+    if (label) {
+      label.textContent = themeId;
+    }
 
     var dots = document.querySelectorAll('.theme-dot');
     dots.forEach(function(dot) {
@@ -130,12 +213,16 @@
   }
 
   function initTheme() {
+    var initialTheme = DEFAULT_THEME;
+
     try {
       var saved = localStorage.getItem(THEME_KEY);
       if (saved && THEMES[saved]) {
-        applyTheme(saved);
+        initialTheme = saved;
       }
     } catch(e) {}
+
+    applyTheme(initialTheme);
 
     var dots = document.querySelectorAll('.theme-dot');
     dots.forEach(function(dot) {
@@ -212,10 +299,13 @@
   init();
 
   function init() {
+    loadResultPrefs();
+
     // Category tab clicks and keyboard navigation
     categoryTabs.forEach(function(tab, index) {
       tab.addEventListener('click', function() {
         selectTab(tab);
+        scheduleQuickPicks(searchInput.value.trim());
       });
 
       // Arrow key navigation for tabs (WAI-ARIA pattern)
@@ -256,6 +346,10 @@
       }
     });
 
+    searchInput.addEventListener('input', function() {
+      scheduleQuickPicks(searchInput.value.trim());
+    });
+
     // Initialize tab indices
     categoryTabs.forEach(function(tab, index) {
       tab.setAttribute('tabindex', index === 0 ? '0' : '-1');
@@ -263,6 +357,7 @@
 
     // Render initial empty state with discovery grid and history
     renderEmptyState();
+    renderQuickPicks([], '');
 
     // Keyboard shortcut: "/" focuses search input
     document.addEventListener('keydown', function(e) {
@@ -294,6 +389,8 @@
       }
 
       performSearch();
+    } else {
+      scheduleQuickPicks(searchInput.value.trim());
     }
 
     // Initialize theme
@@ -310,9 +407,113 @@
     currentCategory = tab.dataset.category;
   }
 
+  function loadResultPrefs() {
+    try {
+      var prefs = JSON.parse(localStorage.getItem(RESULT_PREFS_KEY) || '{}');
+      showMoreSuggestions = prefs.showMoreSuggestions === true;
+      exactMatchBias = prefs.exactMatchBias === true;
+    } catch (e) {
+      showMoreSuggestions = false;
+      exactMatchBias = false;
+    }
+  }
+
+  function saveResultPrefs() {
+    try {
+      localStorage.setItem(RESULT_PREFS_KEY, JSON.stringify({
+        showMoreSuggestions: showMoreSuggestions,
+        exactMatchBias: exactMatchBias
+      }));
+    } catch (e) {
+    }
+  }
+
+  function scheduleQuickPicks(query) {
+    if (!quickPicksContainer) return;
+
+    if (quickPickTimer) {
+      clearTimeout(quickPickTimer);
+      quickPickTimer = null;
+    }
+
+    if (!query || query.length < 2) {
+      quickPickRequestId++;
+      renderQuickPicks([], query);
+      return;
+    }
+
+    quickPickTimer = setTimeout(function() {
+      fetchQuickPicks(query, currentCategory);
+    }, QUICK_PICK_DELAY);
+  }
+
+  function fetchQuickPicks(query, category) {
+    var requestId = ++quickPickRequestId;
+    var quickPickQuery = buildQuickPickQuery(query, category);
+
+    fetchSuggestions(quickPickQuery)
+      .then(function(suggestions) {
+        if (requestId !== quickPickRequestId) return;
+
+        var normalizedQuery = query.toLowerCase();
+        var seen = {};
+        var picks = suggestions.filter(function(item) {
+          var normalizedItem = String(item).toLowerCase();
+          if (seen[normalizedItem]) return false;
+          if (normalizedItem.indexOf(normalizedQuery) === -1) return false;
+          seen[normalizedItem] = true;
+          return true;
+        }).slice(0, 5);
+
+        renderQuickPicks(picks, query);
+      })
+      .catch(function() {
+        if (requestId !== quickPickRequestId) return;
+        renderQuickPicks([], query);
+      });
+  }
+
+  function buildQuickPickQuery(query, category) {
+    if (category === 'artist') {
+      return query;
+    }
+    return query + ' ' + category;
+  }
+
+  function renderQuickPicks(picks, query) {
+    if (!quickPicksContainer) return;
+
+    if (!query || query.length < 2) {
+      quickPicksContainer.innerHTML = '<span class="quick-picks-empty">Type 2+ characters for quick picks.</span>';
+      return;
+    }
+
+    if (!picks || picks.length === 0) {
+      quickPicksContainer.innerHTML = '<span class="quick-picks-empty">No quick picks yet. Press Enter to run full search.</span>';
+      return;
+    }
+
+    var html = '';
+    picks.forEach(function(pick) {
+      html += '<button class="quick-pick" type="button" data-query="' + escapeHtml(String(pick)) + '">' +
+        escapeHtml(String(pick)) + '</button>';
+    });
+    quickPicksContainer.innerHTML = html;
+
+    var quickPickButtons = quickPicksContainer.querySelectorAll('.quick-pick');
+    quickPickButtons.forEach(function(button) {
+      button.addEventListener('click', function() {
+        searchInput.value = button.dataset.query;
+        performSearch();
+      });
+    });
+  }
+
   function performSearch() {
     var query = searchInput.value.trim();
     if (!query || isLoading) return;
+
+    scheduleQuickPicks(query);
 
     isLoading = true;
     searchBtn.disabled = true;
@@ -332,7 +533,7 @@
 
     var loadingStartTime = Date.now();
 
-    // Fetch all question types sequentially with small delays to avoid rate limiting
+    // Fetch all question types in small parallel batches to balance speed and reliability
     fetchAllQuestionTypes(query)
       .then(function(results) {
         // Cache the results
@@ -378,43 +579,48 @@
 
   function fetchAllQuestionTypes(query) {
     var category = currentCategory;
-    return new Promise(function(resolve) {
-      var results = [];
-      var index = 0;
+    var pending = QUESTION_TYPES.map(function(qt, index) {
+      return { qt: qt, index: index };
+    });
+    var results = new Array(pending.length);
 
-      function fetchNext() {
-        if (index >= QUESTION_TYPES.length) {
-          resolve(results);
-          return;
-        }
+    function fetchQuestionType(item) {
+      var qt = item.qt;
+      return fetchSuggestions(buildQuery(qt.prefix, query, category))
+        .then(function(suggestions) {
+          results[item.index] = {
+            id: qt.id,
+            display: qt.display.split('[name]').join(query),
+            prefix: qt.prefix,
+            suggestions: suggestions
+          };
+        })
+        .catch(function() {
+          results[item.index] = {
+            id: qt.id,
+            display: qt.display.split('[name]').join(query),
+            prefix: qt.prefix,
+            suggestions: []
+          };
+        });
+    }
 
-        var qt = QUESTION_TYPES[index];
-        fetchSuggestions(buildQuery(qt.prefix, query, category))
-          .then(function(suggestions) {
-            results.push({
-              id: qt.id,
-              display: qt.display.split('[name]').join(query),
-              prefix: qt.prefix,
-              suggestions: suggestions
-            });
-          })
-          .catch(function() {
-            results.push({
-              id: qt.id,
-              display: qt.display.split('[name]').join(query),
-              prefix: qt.prefix,
-              suggestions: []
-            });
-          })
-          .finally(function() {
-            index++;
-            // Small delay between requests
-            setTimeout(fetchNext, 100);
-          });
+    function runBatch(startIndex) {
+      if (startIndex >= pending.length) {
+        return Promise.resolve(results);
       }
 
-      fetchNext();
-    });
+      var batch = pending.slice(startIndex, startIndex + REQUEST_BATCH_SIZE);
+      return Promise.all(batch.map(fetchQuestionType)).then(function() {
+        return new Promise(function(resolve) {
+          setTimeout(function() {
+            resolve(runBatch(startIndex + REQUEST_BATCH_SIZE));
+          }, 80);
+        });
+      });
+    }
+
+    return runBatch(0);
   }
 
   function fetchSuggestions(query) {
@@ -601,12 +807,14 @@
   function renderEmptyState() {
     var html = '<div class="empty-state">';
     html += '<pre class="ascii-art" aria-hidden="true">';
-    html += '\u266a \u266b  \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501  \u266b \u266a\n';
-    html += '\u2503  W H A T \u00b7 P E O P L E     \u2503\n';
-    html += '\u2503  G O O G L E \u00b7 M U S I C   \u2503\n';
-    html += '\u2503  \u2584\u2584 \u2584\u2584 \u2584\u2584 \u2584\u2584 \u2584\u2584 \u2584\u2584 \u2584\u2584 \u2584\u2584  \u2503\n';
-    html += '\u2503  \u2588\u2588 \u2588\u2588 \u2588\u2588 \u2588\u2588 \u2588\u2588 \u2588\u2588 \u2588\u2588 \u2588\u2588   \u2503\n';
-    html += '\u266a \u266b  \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501  \u266b \u266a</pre>';
+    html += '+--------------------------------------------------+\n';
+    html += '| WHAT PEOPLE GOOGLE MUSIC                         |\n';
+    html += '| MINY EDITION                                     |\n';
+    html += '| MINY  __  __ ___ _   ___   __                    |\n';
+    html += '|      |  \\/  |_ _| \ | \ \ / /                    |\n';
+    html += '|      | |\\/| || ||  \\| |\\ V /                     |\n';
+    html += '|      |_|  |_|___|_|\\__| |_|                     |\n';
+    html += '+--------------------------------------------------+</pre>';
     html += '<p>> enter any artist, song, genre, or album<br>> see what the world is searching_</p>';
 
     // Recent searches
@@ -660,24 +868,48 @@
     var nonEmpty = results.filter(function(r) { return r.suggestions.length > 0; });
 
     if (nonEmpty.length === 0) {
+      var fallbackSearches = getFallbackSearches(query, currentCategory);
       transitionState(function() {
-        resultsContainer.innerHTML =
+        var noResultsHtml =
           '<div class="empty-state state-enter">' +
             '<p>> no results found for "' + escapeHtml(query) + '"</p>' +
-            '<p style="margin-top:12px;">> try a different search term_</p>' +
+            '<p style="margin-top:12px;">> try one of these_</p>' +
+            '<div class="no-results-actions">';
+
+        fallbackSearches.forEach(function(fallback) {
+          noResultsHtml += '<button class="example-chip fallback-chip" type="button" data-query="' +
+            escapeHtml(fallback.query) + '" data-category="' + escapeHtml(fallback.category) + '">' +
+            escapeHtml(fallback.label) + '</button>';
+        });
+
+        noResultsHtml +=
+            '</div>' +
           '</div>';
+
+        resultsContainer.innerHTML = noResultsHtml;
+        attachFallbackHandlers();
       });
       return;
     }
 
     var html = '<div class="results">';
 
+    html += '<div class="results-toolbar card-enter" style="animation-delay:0s">';
+    html += '<button id="toggle-suggestion-limit" class="results-toggle' + (showMoreSuggestions ? ' active' : '') + '" type="button">';
+    html += showMoreSuggestions ? 'Show fewer' : 'Show more';
+    html += '</button>';
+    html += '<button id="toggle-exact-bias" class="results-toggle' + (exactMatchBias ? ' active' : '') + '" type="button">';
+    html += exactMatchBias ? 'Exact bias on' : 'Exact bias off';
+    html += '</button>';
+    html += '</div>';
+
     nonEmpty.forEach(function(result, idx) {
+      var renderedSuggestions = applySuggestionPreferences(result.suggestions, result.prefix, query);
       html += '<div class="result-card card-enter" style="animation-delay:' + (idx * 0.07) + 's">';
       html += '<h3>' + escapeHtml(result.display) + '</h3>';
       html += '<ul class="suggestion-list">';
 
-      result.suggestions.slice(0, 8).forEach(function(suggestion) {
+      renderedSuggestions.forEach(function(suggestion) {
         var formatted = formatSuggestion(suggestion, result.prefix, query);
         var searchUrl = 'https://www.google.com/search?q=' + encodeURIComponent(suggestion);
         html += '<li class="suggestion-item"><a href="' + searchUrl + '" target="_blank" rel="noopener noreferrer">' + formatted + '</a></li>';
@@ -713,7 +945,66 @@
       if (shareResultsBtn) {
         shareResultsBtn.addEventListener('click', handleShare);
       }
+
+      var toggleSuggestionLimitBtn = document.getElementById('toggle-suggestion-limit');
+      if (toggleSuggestionLimitBtn) {
+        toggleSuggestionLimitBtn.addEventListener('click', function() {
+          showMoreSuggestions = !showMoreSuggestions;
+          saveResultPrefs();
+          renderResults(query, results);
+        });
+      }
+
+      var toggleExactBiasBtn = document.getElementById('toggle-exact-bias');
+      if (toggleExactBiasBtn) {
+        toggleExactBiasBtn.addEventListener('click', function() {
+          exactMatchBias = !exactMatchBias;
+          saveResultPrefs();
+          renderResults(query, results);
+        });
+      }
     });
+  }
+
+  function applySuggestionPreferences(suggestions, prefix, query) {
+    var limited = suggestions.slice();
+    if (exactMatchBias) {
+      limited = sortSuggestionsWithBias(limited, prefix, query);
+    }
+
+    var limit = showMoreSuggestions ? EXPANDED_SUGGESTION_LIMIT : DEFAULT_SUGGESTION_LIMIT;
+    return limited.slice(0, limit);
+  }
+
+  function sortSuggestionsWithBias(suggestions, prefix, query) {
+    var normalizedPrefixQuery = (prefix + ' ' + query).toLowerCase();
+    var normalizedQuery = query.toLowerCase();
+
+    function scoreSuggestion(suggestion) {
+      var lower = String(suggestion).toLowerCase();
+      var score = 0;
+      if (lower.indexOf(normalizedPrefixQuery) === 0) score += 6;
+      if (lower.indexOf(normalizedQuery) === 0) score += 3;
+      if (lower.indexOf(' ' + normalizedQuery + ' ') !== -1) score += 2;
+      if (lower.indexOf(normalizedQuery) !== -1) score += 1;
+      return score;
+    }
+
+    return suggestions
+      .map(function(suggestion, index) {
+        return {
+          suggestion: suggestion,
+          score: scoreSuggestion(suggestion),
+          index: index
+        };
+      })
+      .sort(function(a, b) {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.index - b.index;
+      })
+      .map(function(item) {
+        return item.suggestion;
+      });
   }
 
   function formatSuggestion(suggestion, prefix, query) {
@@ -728,6 +1019,54 @@
     }
     
     return escapeHtml(suggestion);
+  }
+
+  function getFallbackSearches(query, category) {
+    var options = [];
+    var dedupe = {};
+
+    function addOption(label, nextQuery, nextCategory) {
+      var key = nextQuery.toLowerCase() + '|' + nextCategory;
+      if (!nextQuery || dedupe[key]) return;
+      dedupe[key] = true;
+      options.push({
+        label: label,
+        query: nextQuery,
+        category: nextCategory
+      });
+    }
+
+    var simplified = query
+      .replace(/[^\w\s\-\.'&]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (simplified && simplified.toLowerCase() !== query.toLowerCase()) {
+      addOption('Try "' + simplified + '"', simplified, category);
+    }
+
+    var sameCategoryDiscovery = DISCOVERY_ITEMS.find(function(item) {
+      return item.category === category && item.name.toLowerCase() !== query.toLowerCase();
+    });
+
+    if (sameCategoryDiscovery) {
+      addOption('Try "' + sameCategoryDiscovery.name + '"', sameCategoryDiscovery.name, category);
+    }
+
+    var categoryIndex = VALID_CATEGORIES.indexOf(category);
+    var nextCategory = VALID_CATEGORIES[(categoryIndex + 1) % VALID_CATEGORIES.length];
+    addOption('Search this as ' + nextCategory, query, nextCategory);
+
+    return options.slice(0, 3);
+  }
+
+  function attachFallbackHandlers() {
+    var fallbackChips = document.querySelectorAll('.fallback-chip');
+    fallbackChips.forEach(function(chip) {
+      chip.addEventListener('click', function() {
+        triggerSearchFromChip(chip.dataset.query, chip.dataset.category);
+      });
+    });
   }
 
   function escapeHtml(str) {

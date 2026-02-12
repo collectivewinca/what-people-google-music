@@ -131,6 +131,14 @@ Concise rules for building accessible, fast, delightful UIs. Use MUST/SHOULD/NEV
 - SHOULD: `<meta name="theme-color">` matches page background
 - MUST: Native `<select>`: explicit `background-color` and `color` (Windows fix)
 
+## Project-specific defaults
+
+- MUST: Keep `light` as the default first-load theme (when no saved theme exists)
+- MUST: Preserve theme switching via CSS variables; update `<meta name="theme-color">` on theme change
+- SHOULD: Keep quick-pick suggestions non-blocking and debounced while typing
+- SHOULD: Keep result controls (`Show more`, `Exact bias`) persisted in localStorage
+- MUST: Keep fallback chips available in no-result state so users always have a recovery path
+
 ## Hydration
 
 - MUST: Inputs with `value` need `onChange` (or use `defaultValue`)
