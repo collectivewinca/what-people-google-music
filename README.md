@@ -4,6 +4,8 @@ Discover what the world is curious about when it comes to music. Search for any 
 
 **Try it live:** [what-people-google-music.netlify.app](https://what-people-google-music.netlify.app)
 
+**MUSIC WILL GET YOU THERE** — [MINYVINYL.COM](https://minyvinyl.com)
+
 ## Features
 
 - **Category search** — Choose Artist, Song, Genre, or Album to get category-specific results
@@ -80,7 +82,6 @@ npm run build  # Production bundle
 
 ## Credits
 
-- Forked from [anvaka/what-people-google](https://github.com/anvaka/what-people-google)
 - Design inspired by [MINY Vinyl](https://minyvinyl.com)
 - Built by [VeLab](https://velab.org)
 

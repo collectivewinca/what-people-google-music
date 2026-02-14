@@ -1,5 +1,4 @@
 // What People Google About Music - Entry Point
-// A music-focused fork of anvaka's what-people-google
 
 (function() {
   'use strict';

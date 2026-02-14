@@ -9,7 +9,7 @@
     "server": "http-server -c-1 -p 8080",
     "dev": "concurrently --kill-others \"npm run watch\" \"npm run server\""
   },
-  "author": "Fork of anvaka/what-people-google",
+  "author": "VeLab",
   "license": "MIT",
   "repository": {
     "type": "git",
